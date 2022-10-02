@@ -54,7 +54,7 @@ const init = function () {
             'py.png', 'ny.png',
             'pz.png', 'nz.png',
         ]);
-    scene.background = cubeTexture;
+    // scene.background = cubeTexture;
 
     // GLTFLoader
     gltfLoader = new GLTFLoader();
@@ -78,8 +78,14 @@ const init = function () {
     }
     
     // Mesh
-    const geometry = new THREE.BoxGeometry(1, 1, 1);
-    const material = new THREE.MeshStandardMaterial({ color: 'red' });
+    const geometry = new THREE.BoxGeometry(50, 50, 50);
+    const material = new THREE.MeshStandardMaterial({ 
+        // color: 'red',
+        side: THREE.DoubleSide,
+        envMap: cubeTexture,
+        metalness: 1,
+        roughness: 0,
+    });
     const mesh = new THREE.Mesh(geometry, material);
     scene.add(mesh);
 
