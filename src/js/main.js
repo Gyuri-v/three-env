@@ -2,6 +2,9 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 import CreateArrow from './CreateArrow';
+import dat from 'dat.gui';
+import gsap from 'gsap';
+import CreateTexture from './createTexture';
 
 const canvasWrap = document.querySelector('.canvas-wrap');
 const canvas = canvasWrap.querySelector('canvas');
@@ -9,12 +12,17 @@ const canvas = canvasWrap.querySelector('canvas');
 let WIDTH = window.innerWidth;
 let HEIGHT = window.innerHeight;
 
-let renderer, scene, camera, ambientLight, pointLight;
+let renderer, scene, camera, ambientLight, pointLight, gui;
 let orbitControls, raycaster, mouse;
-let cubeTextureLoader, cubeTexture;
+let cubeTextureLoader, textureLiving, textureNeon;
+let textures = [];
 let gltfLoader;
 let arrow = null;
 let arrows = [];
+let mesh1, mesh2;
+let meshs = [];
+let currentMesh = 0;
+let totalNum = 4;
 
 const init = function () {
     // Renderer
@@ -28,7 +36,7 @@ const init = function () {
     
     // Camera
     camera = new THREE.PerspectiveCamera( 70, WIDTH/HEIGHT, 0.1, 100 );
-    camera.position.set(0, 6, 10);
+    camera.position.set(0, 1, 2);
     scene.add( camera );
 
     // Light 
@@ -42,24 +50,46 @@ const init = function () {
 
     // Controls
     orbitControls = new OrbitControls( camera, renderer.domElement );
-    orbitControls.enableZoom = false;
-    orbitControls.enableDamping = true;
+    // orbitControls.enableZoom = false;
+    // orbitControls.enableDamping = true;
+
+    // GUI
+    gui = new dat.GUI();
+    // gui.add(PerspectiveCamera, 'fov', -50, 50, 0.01);
 
     // CubeTextureLoader
     cubeTextureLoader = new THREE.CubeTextureLoader();
-    cubeTexture = cubeTextureLoader
-        .setPath('./public/texture/living/')
-        .load([
-            'px.png', 'nx.png',
-            'py.png', 'ny.png',
-            'pz.png', 'nz.png',
-        ]);
-    // scene.background = cubeTexture;
+    // textureLiving = cubeTextureLoader
+    //     .setPath('./public/texture/texture0/')
+    //     .load([
+    //         'px.png', 'nx.png',
+    //         'py.png', 'ny.png',
+    //         'pz.png', 'nz.png',
+    //     ]);
+    // textureNeon = cubeTextureLoader
+    //     .setPath('./public/texture/neon/')
+    //     .load([
+    //         'px.png', 'nx.png',
+    //         'py.png', 'ny.png',
+    //         'pz.png', 'nz.png',
+    //     ]);
+    for (let i = 0; i < totalNum; i++) {
+        const texture = cubeTextureLoader
+            .setPath(`./public/texture/${i}/`)
+            .load([
+                'px.png', 'nx.png',
+                'py.png', 'ny.png',
+                'pz.png', 'nz.png',
+            ]);
+        console.log(texture, textureLiving);
+        textures.push(texture);
+    }
+    scene.background = textures[0];
 
     // GLTFLoader
     gltfLoader = new GLTFLoader();
     for (let i = 0; i < 4; i++) {
-        let distance = 5;
+        let distance = 1;
 
         const px = i === 1 ? -distance : i === 3 ? distance : 0;
         const pz = i === 0 ? -distance : i === 2 ? distance : 0;
@@ -78,16 +108,29 @@ const init = function () {
     }
     
     // Mesh
-    const geometry = new THREE.BoxGeometry(50, 50, 50);
-    const material = new THREE.MeshStandardMaterial({ 
-        // color: 'red',
-        side: THREE.DoubleSide,
-        envMap: cubeTexture,
-        metalness: 1,
-        roughness: 0,
-    });
-    const mesh = new THREE.Mesh(geometry, material);
-    scene.add(mesh);
+    // const geometry = new THREE.SphereGeometry(2.5, 16, 8);
+    // const geometry = new THREE.BoxGeometry(5, 5, 5);
+    const geometry = new THREE.BoxGeometry(0.1, 0.1, 0.1);
+    const meterial = new THREE.MeshStandardMaterial({ color: 'red' });
+    // const material1 = new THREE.MeshStandardMaterial({ 
+    //     // color: 'red',
+    //     side: THREE.DoubleSide,
+    //     envMap: textureLiving,
+    //     metalness: 1,
+    //     roughness: 0,
+    // });
+    // const material2 = new THREE.MeshStandardMaterial({ 
+    //     // color: 'red',
+    //     side: THREE.DoubleSide,
+    //     envMap: textureNeon,
+    //     metalness: 1,
+    //     roughness: 0,
+    // });
+    mesh1 = new THREE.Mesh(geometry, meterial);
+    mesh2 = new THREE.Mesh(geometry, meterial);
+    mesh2.position.set(0, 0, -5.01);
+    meshs.push(mesh1, mesh2);
+    scene.add(mesh1, mesh2);
 
     // Raycaster
     raycaster = new THREE.Raycaster();
@@ -107,7 +150,35 @@ const checkIntersects = function () {
     const intersects = raycaster.intersectObjects(scene.children);
     
     for (const item of intersects) {
-        console.log(item.object.name);
+        if( item.object.name === 'arrow0' ){
+            currentMesh++;
+            
+            gsap.to(camera.position, {
+                duration: 1,
+                x: meshs[currentMesh].position.x,
+                z: meshs[currentMesh].position.z + 2,
+            });
+            gsap.to(orbitControls.target, {
+                duration: 1,
+                x: meshs[currentMesh].position.x,
+                y: meshs[currentMesh].position.y,
+                z: meshs[currentMesh].position.z,
+            });
+            setTimeout(() => {
+                scene.background = textures[currentMesh];
+            }, 500);
+
+            // orbitControls.target = mesh2.position;
+            // console.log(camera.position);
+            // cubeTexture = cubeTextureLoader
+            // .setPath('./public/texture/neon/')
+            // .load([
+            //     'px.png', 'nx.png',
+            //     'py.png', 'ny.png',
+            //     'pz.png', 'nz.png',
+            // ]);
+            break;
+        }
     }
 }
 

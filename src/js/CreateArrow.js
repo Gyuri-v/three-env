@@ -18,6 +18,7 @@ export default class CreateArrow {
                 const model = gltf.scene.children[0];
                 
                 model.name = this.name;
+                model.scale.set(0.1, 0.1, 0.1);
                 model.position.set(this.positionX, this.positionY, this.positionZ);
                 model.rotation.set(this.rotationX, this.rotationY, this.rotationZ);
                 
