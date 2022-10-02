@@ -4,7 +4,6 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 import CreateArrow from './CreateArrow';
 import dat from 'dat.gui';
 import gsap from 'gsap';
-import CreateTexture from './createTexture';
 
 const canvasWrap = document.querySelector('.canvas-wrap');
 const canvas = canvasWrap.querySelector('canvas');
@@ -59,20 +58,6 @@ const init = function () {
 
     // CubeTextureLoader
     cubeTextureLoader = new THREE.CubeTextureLoader();
-    // textureLiving = cubeTextureLoader
-    //     .setPath('./public/texture/texture0/')
-    //     .load([
-    //         'px.png', 'nx.png',
-    //         'py.png', 'ny.png',
-    //         'pz.png', 'nz.png',
-    //     ]);
-    // textureNeon = cubeTextureLoader
-    //     .setPath('./public/texture/neon/')
-    //     .load([
-    //         'px.png', 'nx.png',
-    //         'py.png', 'ny.png',
-    //         'pz.png', 'nz.png',
-    //     ]);
     for (let i = 0; i < totalNum; i++) {
         const texture = cubeTextureLoader
             .setPath(`./public/texture/${i}/`)
@@ -81,7 +66,6 @@ const init = function () {
                 'py.png', 'ny.png',
                 'pz.png', 'nz.png',
             ]);
-        console.log(texture, textureLiving);
         textures.push(texture);
     }
     scene.background = textures[0];
@@ -108,24 +92,8 @@ const init = function () {
     }
     
     // Mesh
-    // const geometry = new THREE.SphereGeometry(2.5, 16, 8);
-    // const geometry = new THREE.BoxGeometry(5, 5, 5);
     const geometry = new THREE.BoxGeometry(0.1, 0.1, 0.1);
     const meterial = new THREE.MeshStandardMaterial({ color: 'red' });
-    // const material1 = new THREE.MeshStandardMaterial({ 
-    //     // color: 'red',
-    //     side: THREE.DoubleSide,
-    //     envMap: textureLiving,
-    //     metalness: 1,
-    //     roughness: 0,
-    // });
-    // const material2 = new THREE.MeshStandardMaterial({ 
-    //     // color: 'red',
-    //     side: THREE.DoubleSide,
-    //     envMap: textureNeon,
-    //     metalness: 1,
-    //     roughness: 0,
-    // });
     mesh1 = new THREE.Mesh(geometry, meterial);
     mesh2 = new THREE.Mesh(geometry, meterial);
     mesh2.position.set(0, 0, -5.01);
@@ -150,6 +118,8 @@ const checkIntersects = function () {
     const intersects = raycaster.intersectObjects(scene.children);
     
     for (const item of intersects) {
+        console.log(item.object.name);
+        
         if( item.object.name === 'arrow0' ){
             currentMesh++;
             
@@ -164,19 +134,25 @@ const checkIntersects = function () {
                 y: meshs[currentMesh].position.y,
                 z: meshs[currentMesh].position.z,
             });
+            arrows.forEach(item => {
+                gsap.to(item.model.position, {
+                    duration: 1,
+                    x: item.model.position.x + meshs[currentMesh].position.x,
+                    y: item.model.position.y + meshs[currentMesh].position.y,
+                    z: item.model.position.z + meshs[currentMesh].position.z,
+                });
+            });
+
+            arrows[1].model.material.transparent = true;
+            arrows[1].model.material.opacity = 0;
+            console.log(arrows[1].model.material.opacity);
+
+            // if ( meshs[currentMesh].position.x === meshs[currentMesh - 1].position.x ) arrows[1].model.material.opacity(0);
+            
             setTimeout(() => {
                 scene.background = textures[currentMesh];
             }, 500);
 
-            // orbitControls.target = mesh2.position;
-            // console.log(camera.position);
-            // cubeTexture = cubeTextureLoader
-            // .setPath('./public/texture/neon/')
-            // .load([
-            //     'px.png', 'nx.png',
-            //     'py.png', 'ny.png',
-            //     'pz.png', 'nz.png',
-            // ]);
             break;
         }
     }
@@ -191,3 +167,15 @@ const draw = function () {
 
 init();
 draw();
+
+
+
+/*
+
+1. box의 좌표를 수기로 따야한다는 점
+2. sky view - 바귈때 부드럽게 바뀔 수 있는 처리
+3. cube map - 정말 박스모양 그대로 보임 , shpere 로 하면 이동할때 빈공간이 살짝 보일 수 있음
+
+
+
+*/

@@ -15,16 +15,17 @@ export default class CreateArrow {
         this.gltfLoader.load(
             './public/models/arrow.glb',
             gltf => {
-                const model = gltf.scene.children[0];
+                this.model = gltf.scene.children[0];
                 
-                model.name = this.name;
-                model.scale.set(0.1, 0.1, 0.1);
-                model.position.set(this.positionX, this.positionY, this.positionZ);
-                model.rotation.set(this.rotationX, this.rotationY, this.rotationZ);
+                this.model.name = this.name;
+                this.model.scale.set(0.1, 0.1, 0.1);
+                this.model.position.set(this.positionX, this.positionY, this.positionZ);
+                this.model.rotation.set(this.rotationX, this.rotationY, this.rotationZ);
                 
-                this.scene.add(model);
+                this.scene.add(this.model);
             }
         )
         
+        return
     }
 }
