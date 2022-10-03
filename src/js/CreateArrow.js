@@ -3,6 +3,7 @@ export default class CreateArrow {
         this.gltfLoader = info.gltfLoader;
         this.scene = info.scene;
         this.name = info.name;
+        this.num = info.num;
 
         this.positionX = info.positionX || 0;
         this.positionY = info.positionY || 0;

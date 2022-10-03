@@ -2,7 +2,6 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 import CreateArrow from './CreateArrow';
-import dat from 'dat.gui';
 import gsap from 'gsap';
 
 const canvasWrap = document.querySelector('.canvas-wrap');
@@ -11,17 +10,25 @@ const canvas = canvasWrap.querySelector('canvas');
 let WIDTH = window.innerWidth;
 let HEIGHT = window.innerHeight;
 
-let renderer, scene, camera, ambientLight, pointLight, gui;
-let orbitControls, raycaster, mouse;
-let cubeTextureLoader, textureLiving, textureNeon;
+let renderer, scene, camera, ambientLight, pointLight;
+let orbitControls;
+let raycaster, mouse;
+let textureLoader, gltfLoader;
+
 let textures = [];
-let gltfLoader;
-let arrow = null;
 let arrows = [];
-let mesh1, mesh2;
-let meshs = [];
+let spots = [];
+
+let arrowDistance = 1;
 let currentMesh = 0;
-let totalNum = 4;
+let textureTotalNum = 4;
+
+let spotsValue = [
+    new THREE.Vector3(0, 0, 0),
+    new THREE.Vector3(0, 0, -5),
+    new THREE.Vector3(5, 0, -5),
+    new THREE.Vector3(5, 0, -10),
+]
 
 const init = function () {
     // Renderer
@@ -52,14 +59,10 @@ const init = function () {
     // orbitControls.enableZoom = false;
     // orbitControls.enableDamping = true;
 
-    // GUI
-    gui = new dat.GUI();
-    // gui.add(PerspectiveCamera, 'fov', -50, 50, 0.01);
-
-    // CubeTextureLoader
-    cubeTextureLoader = new THREE.CubeTextureLoader();
-    for (let i = 0; i < totalNum; i++) {
-        const texture = cubeTextureLoader
+    // textureLoader
+    textureLoader = new THREE.CubeTextureLoader();
+    for (let i = 0; i < textureTotalNum; i++) {
+        const texture = textureLoader
             .setPath(`./public/texture/${i}/`)
             .load([
                 'px.png', 'nx.png',
@@ -73,15 +76,14 @@ const init = function () {
     // GLTFLoader
     gltfLoader = new GLTFLoader();
     for (let i = 0; i < 4; i++) {
-        let distance = 1;
-
-        const px = i === 1 ? -distance : i === 3 ? distance : 0;
-        const pz = i === 0 ? -distance : i === 2 ? distance : 0;
+        const px = i === 1 ? -arrowDistance : i === 3 ? arrowDistance : 0;
+        const pz = i === 0 ? -arrowDistance : i === 2 ? arrowDistance : 0;
         const rz = i === 1 ? Math.PI / -2 :  i === 2 ? Math.PI : i === 3 ? Math.PI / 2 : 0;
 
-        arrow = new CreateArrow({
+        let arrow = new CreateArrow({
             gltfLoader,
             scene,
+            num: i,
             name: `arrow${i}`,
             positionX: px,
             positionZ: pz,
@@ -94,12 +96,13 @@ const init = function () {
     // Mesh
     const geometry = new THREE.BoxGeometry(0.1, 0.1, 0.1);
     const meterial = new THREE.MeshStandardMaterial({ color: 'red' });
-    mesh1 = new THREE.Mesh(geometry, meterial);
-    mesh2 = new THREE.Mesh(geometry, meterial);
-    mesh2.position.set(0, 0, -5.01);
-    meshs.push(mesh1, mesh2);
-    scene.add(mesh1, mesh2);
 
+    for (let i = 0; i < spotsValue.length; i++) {
+        let mesh = new THREE.Mesh(geometry, meterial);
+        mesh.position.set(spotsValue[i].x, spotsValue[i].y, spotsValue[i].z);
+        spots.push(mesh);
+        scene.add(mesh);
+    }
     // Raycaster
     raycaster = new THREE.Raycaster();
     mouse = new THREE.Vector2();
@@ -119,35 +122,39 @@ const checkIntersects = function () {
     
     for (const item of intersects) {
         console.log(item.object.name);
-        
+
         if( item.object.name === 'arrow0' ){
             currentMesh++;
             
             gsap.to(camera.position, {
                 duration: 1,
-                x: meshs[currentMesh].position.x,
-                z: meshs[currentMesh].position.z + 2,
+                x: spots[currentMesh].position.x,
+                z: spots[currentMesh].position.z + 2,
             });
             gsap.to(orbitControls.target, {
                 duration: 1,
-                x: meshs[currentMesh].position.x,
-                y: meshs[currentMesh].position.y,
-                z: meshs[currentMesh].position.z,
+                x: spots[currentMesh].position.x,
+                y: spots[currentMesh].position.y,
+                z: spots[currentMesh].position.z,
             });
             arrows.forEach(item => {
+                console.log(item.num);
+                let px = item.num === 1 ? -arrowDistance : item.num === 3 ? arrowDistance : 0;
+                let pz = item.num === 0 ? -arrowDistance : item.num === 2 ? arrowDistance : 0;
+                
                 gsap.to(item.model.position, {
                     duration: 1,
-                    x: item.model.position.x + meshs[currentMesh].position.x,
-                    y: item.model.position.y + meshs[currentMesh].position.y,
-                    z: item.model.position.z + meshs[currentMesh].position.z,
+                    x: px + spots[currentMesh].position.x,
+                    z: pz + spots[currentMesh].position.z,
                 });
             });
 
-            arrows[1].model.material.transparent = true;
-            arrows[1].model.material.opacity = 0;
-            console.log(arrows[1].model.material.opacity);
-
-            // if ( meshs[currentMesh].position.x === meshs[currentMesh - 1].position.x ) arrows[1].model.material.opacity(0);
+            // if ( 
+            //     spots[currentMesh].position.x === spots[currentMesh - 1].position.x
+            // ) {
+            //     arrows[1].model.material.transparent = true;
+            //     arrows[1].model.material.opacity = 0;
+            // }
             
             setTimeout(() => {
                 scene.background = textures[currentMesh];
@@ -155,6 +162,47 @@ const checkIntersects = function () {
 
             break;
         }
+
+        if( item.object.name === 'arrow2' ){
+            currentMesh--;
+            
+            gsap.to(camera.position, {
+                duration: 1,
+                x: spots[currentMesh].position.x,
+                z: spots[currentMesh].position.z + 2,
+            });
+            gsap.to(orbitControls.target, {
+                duration: 1,
+                x: spots[currentMesh].position.x,
+                y: spots[currentMesh].position.y,
+                z: spots[currentMesh].position.z,
+            });
+            arrows.forEach(item => {
+                console.log(item.num);
+                let px = item.num === 1 ? -arrowDistance : item.num === 3 ? arrowDistance : 0;
+                let pz = item.num === 0 ? -arrowDistance : item.num === 2 ? arrowDistance : 0;
+                
+                gsap.to(item.model.position, {
+                    duration: 1,
+                    x: px + spots[currentMesh].position.x,
+                    z: pz + spots[currentMesh].position.z,
+                });
+            });
+
+            // if ( 
+            //     spots[currentMesh].position.x === spots[currentMesh - 1].position.x
+            // ) {
+            //     arrows[1].model.material.transparent = true;
+            //     arrows[1].model.material.opacity = 0;
+            // }
+            
+            setTimeout(() => {
+                scene.background = textures[currentMesh];
+            }, 500);
+
+            break;
+        }
+        
     }
 }
 
@@ -171,11 +219,17 @@ draw();
 
 
 /*
+1. 상하좌우에 박스가 있는지 체크해서 오퍼시티, 클릭 안되게 적용
+2. 상하좌우 버튼 다 되도록 적용
 
+*. spotsValue, textureTotalNum 합칠방법..?
+*. 이동하는 동안 화살표 클릭 못하게 막아둬야 하나?
+*/
+
+
+
+/*
 1. box의 좌표를 수기로 따야한다는 점
 2. sky view - 바귈때 부드럽게 바뀔 수 있는 처리
 3. cube map - 정말 박스모양 그대로 보임 , shpere 로 하면 이동할때 빈공간이 살짝 보일 수 있음
-
-
-
 */
